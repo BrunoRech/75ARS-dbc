@@ -4,10 +4,11 @@
 
 https://classic.yarnpkg.com/en/
 
-## Execute no terminal dentro da raíz do projeto os seguintes comandos:
+# Execute no terminal dentro da raíz do projeto os seguintes comandos:
 
-yarn
-(Instala todas as dependências do projeto)
+## yarn
+
+Instala todas as dependências do projeto
 
 ## yarn start
 
