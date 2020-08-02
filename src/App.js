@@ -1,153 +1,114 @@
-import React, { useState } from "react";
-import axios from "axios";
-import { Form, Icon } from "semantic-ui-react";
-import { Container, FormContainer, FormButton } from "./styles/AppStyles";
-import { cpfValidator } from "./functions/Validator";
+import React, { useState, useEffect, useCallback } from "react";
+import { Container, Modal } from "./styles/AppStyles";
+import { Table, Button, Icon } from "semantic-ui-react";
+import { backend } from "./services/api";
+import ClienteForm from "./components/ClienteForm";
+
+const collumns = [
+  { nome: "Nome", path: "nome" },
+  { nome: "CPF", path: "cpf" },
+  { nome: "RG", path: "rg" },
+  { nome: "Data", path: "data" },
+  { nome: "CEP", path: "cep" },
+  { nome: "Rua", path: "rua" },
+  { nome: "Cidade", path: "cidade" },
+  { nome: "Estado", path: "estado" },
+  { nome: "Bairro", path: "bairro" },
+  { nome: "Número", path: "numero" },
+];
+
+const { Row, Cell, Body, Header, HeaderCell } = Table;
 
 const App = () => {
-  const formStartingValue = {
-    nome: "",
-    cpf: "",
-    rg: "",
-    data: "",
-    cep: "",
-    rua: "",
-    cidade: "",
-    estado: "",
-    bairro: "",
-    numero: "",
-  };
-  const [formData, setFormData] = useState({ ...formStartingValue });
-  const [loading, setLoading] = useState(false);
+  const [openModal, handleModal] = useState(false);
+  const [cliente, setCliente] = useState({});
+  const [clientes, setClientes] = useState([]);
 
-  const fetchCep = async () => {
-    setLoading(true);
-    await axios
-      .get(`https://viacep.com.br/ws/${formData.cep}/json/`)
-      .then(({ data }) => {
-        const { localidade: cidade, uf: estado } = data;
-        setFormData({ ...formData, estado, cidade });
-      })
-      .catch((error) => {
-        alert("CEP inválido");
-      });
-    setLoading(false);
-  };
-
-  const handleChange = (event, { name }) => {
-    const { value } = event.target;
-    setFormData({ ...formData, [name]: value });
-  };
-
-  const handleSubmit = () => {
-    setLoading(true);
-    if (!cpfValidator(formData.cpf)) {
-      setLoading(false);
-      return alert("CPF inválido");
+  const carregarClientes = useCallback(async () => {
+    try {
+      const { data } = await backend.get("/clientes");
+      setClientes(data);
+    } catch (error) {
+      alert("Não foi possível carregar a lista de clientes");
     }
-    const keys = Object.keys(formData);
-    for (let index = 0; index < keys.length; index++) {
-      if (formData[keys[index]].length === 0) {
-        setLoading(false);
-        alert("Preencha todos os campos");
-        return;
-      }
-    }
+  }, []);
 
-    alert("Cliente cadastrado");
-    setFormData({ ...formStartingValue });
-    setLoading(false);
+  useEffect(() => {
+    carregarClientes();
+  }, [carregarClientes]);
+
+  const deletarCliente = async (id) => {
+    try {
+      await backend.delete(`/clientes/${id}`);
+      alert("Cliente deletado com sucesso!");
+      setClientes(clientes.filter(({ id: clienteId }) => clienteId !== id));
+    } catch (error) {
+      alert("Erro ao deletar cliente");
+    }
+  };
+
+  const closeModal = () => {
+    handleModal(false);
+    setCliente({});
+    carregarClientes();
   };
 
   return (
-    <Container>
-      <FormContainer>
-        <Form loading={loading}>
-          <Form.Input
-            onChange={handleChange}
-            value={formData.nome}
-            name="nome"
-            label="Nome completo"
-          />
-          <Form.Group>
-            <Form.Input
-              type="number"
-              onChange={handleChange}
-              value={formData.cpf}
-              name="cpf"
-              label="CPF"
-            />
-            <Form.Input
-              type="number"
-              onChange={handleChange}
-              value={formData.rg}
-              name="rg"
-              label="RG"
-            />
-            <Form.Input
-              onChange={handleChange}
-              value={formData.data}
-              name="data"
-              label="Data Nascimento"
-            />
-          </Form.Group>
-          <Form.Group>
-            <Form.Input
-              onChange={handleChange}
-              value={formData.rua}
-              name="rua"
-              label="Rua"
-            />
-            <Form.Input
-              onChange={handleChange}
-              value={formData.bairro}
-              name="bairro"
-              label="Bairro"
-            />
-            <Form.Input
-              type="number"
-              onChange={handleChange}
-              value={formData.numero}
-              name="numero"
-              label="Número"
-            />
-          </Form.Group>
-          <Form.Input
-            disabled
-            value={formData.cidade}
-            name="cidade"
-            label="Cidade"
-          />
-          <Form.Group>
-            <Form.Input
-              disabled
-              value={formData.estado}
-              name="estado"
-              label="Estado"
-            />
-
-            <Form.Input
-              type="number"
-              onChange={handleChange}
-              value={formData.cep}
-              name="cep"
-              label="CEP"
-            />
-
-            <FormButton
-              label="Procurar"
-              icon={<Icon name="search" />}
-              primary
-              onClick={fetchCep}
-              fluid
-            />
-          </Form.Group>
-          <Form.Button primary fluid onClick={handleSubmit}>
-            Cadastrar
-          </Form.Button>
-        </Form>
-      </FormContainer>
-    </Container>
+    <>
+      <Container>
+        <Button primary onClick={() => handleModal(true)}>
+          Cadastrar cliente
+        </Button>
+        <Table celled compact padded>
+          <Header>
+            <Row>
+              {collumns.map(({ nome }) => (
+                <HeaderCell>{nome}</HeaderCell>
+              ))}
+              <HeaderCell>Ações</HeaderCell>
+            </Row>
+          </Header>
+          <Body>
+            {clientes.map((cliente) => (
+              <Row key={cliente.id}>
+                {collumns.map(({ path }) => (
+                  <Cell>{cliente[path]}</Cell>
+                ))}
+                <Cell>
+                  <Button
+                    onClick={() => {
+                      setCliente(cliente);
+                      handleModal(true);
+                    }}
+                  >
+                    <Icon color="orange" name="pencil" />
+                    Editar
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      deletarCliente(cliente.id);
+                    }}
+                  >
+                    <Icon color="red" name="close" />
+                    Excluir
+                  </Button>
+                </Cell>
+              </Row>
+            ))}
+          </Body>
+        </Table>
+      </Container>
+      <Modal
+        open={openModal}
+        onClose={() => {
+          handleModal(false);
+          setCliente({});
+        }}
+        closeOnTriggerMouseLeave
+      >
+        <ClienteForm cliente={cliente} callback={closeModal} />
+      </Modal>
+    </>
   );
 };
 
