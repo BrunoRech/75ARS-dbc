@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Container, Modal } from "./styles/AppStyles";
-import { Table, Button, Icon } from "semantic-ui-react";
+import { Container, Modal, FindContainer } from "./styles/AppStyles";
+import { Table, Button, Icon, Form } from "semantic-ui-react";
 import { backend } from "./services/api";
 import ClienteForm from "./components/ClienteForm";
 
@@ -16,13 +16,14 @@ const collumns = [
   { nome: "Bairro", path: "bairro" },
   { nome: "Número", path: "numero" },
 ];
-
+const { Button: FormButton, Input } = Form;
 const { Row, Cell, Body, Header, HeaderCell } = Table;
 
 const App = () => {
   const [openModal, handleModal] = useState(false);
   const [cliente, setCliente] = useState({});
   const [clientes, setClientes] = useState([]);
+  const [clienteId, setClienteId] = useState(null);
 
   const carregarClientes = useCallback(async () => {
     try {
@@ -53,12 +54,40 @@ const App = () => {
     carregarClientes();
   };
 
+  const procurarPorId = async () => {
+    try {
+      const { data } = await backend.get(`/clientes/${clienteId}`);
+      if (data) {
+        alert('Sucesso!')
+        return setClientes([data]);
+      }
+      alert(`Nenhum cliente encontrado com o Id ${clienteId}`);
+      setClienteId(null);
+      return setClientes([]);
+    } catch (error) {
+      return alert("Erro ao procurar cliente");
+    }
+  };
+
   return (
     <>
       <Container>
         <Button primary onClick={() => handleModal(true)}>
           Cadastrar cliente
         </Button>
+        <Form>
+          <FindContainer>
+            <Input
+              width="3"
+              placeholder="Procurar cliente por id"
+              value={clienteId}
+              onChange={({ target }) => setClienteId(target.value)}
+            />
+            <FormButton onClick={procurarPorId} primary>
+              Procurar
+            </FormButton>
+          </FindContainer>
+        </Form>
         <Table celled compact padded>
           <Header>
             <Row>
@@ -70,7 +99,7 @@ const App = () => {
           </Header>
           <Body>
             {clientes.map((cliente) => (
-              <Row key={cliente.id}>
+              <Row key={cliente?.id}>
                 {collumns.map(({ path }) => (
                   <Cell>{cliente[path]}</Cell>
                 ))}

@@ -23,3 +23,9 @@ export const FormButton = styled(Form.Button)`
 export const Modal = styled(SemanticModal)`
   width: 600px !important;
 `;
+
+export const FindContainer = styled.div`
+  margin-top: 15px;
+  margin-bottom: 10px;
+  display: flex;
+`;
